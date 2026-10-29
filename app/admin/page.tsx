@@ -32,23 +32,32 @@ export default async function AdminPage({ searchParams }: Props) {
           <Link href="/admin/enseignants" className="btn-outline">
             Demandes enseignant{stats.pending_requests > 0 && <span className="rounded-pill bg-salmon px-2 py-0.5 text-xs text-ink">{stats.pending_requests}</span>}
           </Link>
+          <Link href="/admin/etudiants" className="btn-outline">Étudiants</Link>
           <Link href="/enseignant/cours/nouveau" className="btn-primary">Nouveau cours</Link>
         </div>
       </div>
 
-      <dl className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          ["Cours publiés", stats.published, "bg-brand-50"],
-          ["Brouillons", stats.drafts, "bg-sun-50"],
-          ["Examens ouverts", stats.open_exams, "bg-mint-50"],
-          ["Élèves inscrits", stats.learners, "bg-salmon-50"],
-        ].map(([label, value, tint]) => (
-          <div key={label} className={`rounded-card-lg p-6 ${tint}`}>
-            <dt className="text-ink-soft">{label}</dt>
-            <dd className="mt-2 text-4xl font-bold tracking-tight">{value}</dd>
-          </div>
-        ))}
-      </dl>
+          ["Cours publiés", stats.published, "bg-brand-50", null],
+          ["Brouillons", stats.drafts, "bg-sun-50", null],
+          ["Examens ouverts", stats.open_exams, "bg-mint-50", null],
+          ["Élèves inscrits", stats.learners, "bg-salmon-50", "/admin/etudiants"],
+        ].map(([label, value, tint, href]) => {
+          const body = (
+            <>
+              <p className="text-ink-soft">{label}</p>
+              <p className="mt-2 text-4xl font-bold tracking-tight">{value}</p>
+              {href && <p className="mt-2 text-sm font-semibold text-brand">Voir la liste →</p>}
+            </>
+          );
+          return href ? (
+            <Link key={label} href={href as string} className={`hover-lift rounded-card-lg p-6 ${tint}`}>{body}</Link>
+          ) : (
+            <div key={label} className={`rounded-card-lg p-6 ${tint}`}>{body}</div>
+          );
+        })}
+      </div>
 
       {/* ---------- Cours ---------- */}
       <section className="mt-16">
@@ -89,7 +98,9 @@ export default async function AdminPage({ searchParams }: Props) {
                         <button className="text-sm font-semibold text-ink-soft hover:text-brand hover:underline">{published ? "Dépublier" : "Publier"}</button>
                       </form>
                     </td>
-                    <td className="px-5 py-4 font-semibold">{c.learners}</td>
+                    <td className="px-5 py-4 font-semibold">
+                      {c.learners > 0 ? <Link href={`/enseignant/cours/${c.id}/etudiants`} className="text-brand hover:underline">{c.learners}</Link> : 0}
+                    </td>
                     <td className="px-5 py-4">
                       {c.exam_id ? (
                         <div className="flex flex-wrap items-center gap-3">

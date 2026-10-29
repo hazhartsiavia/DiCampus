@@ -64,6 +64,7 @@ export default async function EditCoursePage({ params, searchParams }: Props) {
         <div className="flex flex-wrap gap-3">
           {first && <Link href={`/cours/${course.slug}/apprendre/${first}`} className="btn-ghost">Aperçu</Link>}
           {published && <Link href={`/cours/${course.slug}`} className="btn-ghost">Page publique</Link>}
+          <Link href={`/enseignant/cours/${course.id}/etudiants`} className="btn-outline">Étudiants ({course.learners})</Link>
           {tps.length > 0 && (
             <Link href={`/enseignant/cours/${course.id}/tp`} className="btn-outline">
               Travaux pratiques{toGrade > 0 && <span className="ml-2 rounded-pill bg-accent px-2 py-0.5 text-xs text-ink">{toGrade} à corriger</span>}
