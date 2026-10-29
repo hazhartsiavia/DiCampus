@@ -5,7 +5,8 @@ import path from "node:path";
 import * as seed from "./seed-data";
 import * as cn from "./courses/communaute-numerique";
 
-const DB_PATH = path.join(process.cwd(), "data", "dicampus.db");
+// En production, placez la base hors du dossier déployé (DICAMPUS_DB_PATH) : un redéploiement ne doit pas l'effacer.
+const DB_PATH = process.env.DICAMPUS_DB_PATH || path.join(process.cwd(), "data", "dicampus.db");
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS domains (

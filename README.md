@@ -19,6 +19,15 @@ npm run dev
 
 Ouvrir http://localhost:3000. La base `data/dicampus.db` est créée et remplie automatiquement au premier lancement. Pour recharger le catalogue après une modification de `lib/seed-data.ts`, arrêtez le serveur et supprimez `data/dicampus.db*`.
 
+## Mise en ligne (Hostinger, déploiement depuis GitHub)
+
+- Application Node.js, version **22.13 ou plus récente** (24 recommandé).
+- Commande de build : `npm run build` ; commande de démarrage : `npm start`.
+- Variables d'environnement :
+  - `DICAMPUS_ADMIN_EMAILS` : e-mail(s) des administrateurs, et uniquement les vôtres ;
+  - `DICAMPUS_DB_PATH` : chemin de la base **hors du dossier déployé** (par exemple `/home/<utilisateur>/dicampus-data/dicampus.db`), sinon un redéploiement peut effacer comptes, notes et copies.
+- La base est vide au premier lancement : créez votre compte depuis `/inscription` avec l'e-mail administrateur.
+
 ## Comptes de test locaux
 
 | Rôle | E-mail | Mot de passe |
