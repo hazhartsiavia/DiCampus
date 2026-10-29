@@ -211,7 +211,7 @@ function seedDatabase(db: DatabaseSync) {
   const count = db.prepare("SELECT COUNT(*) AS n FROM courses").get() as { n: number };
   if (count.n > 0) return;
 
-  db.exec("BEGIN");
+  db.exec("SAVEPOINT seed");
   try {
     const domainIds = new Map<string, number | bigint>();
     const insertDomain = db.prepare("INSERT INTO domains (slug, name, description, icon) VALUES (?, ?, ?, ?)");
@@ -252,9 +252,9 @@ function seedDatabase(db: DatabaseSync) {
       const specId = insertSpec.run(s.slug, s.title, s.description, partnerIds.get(s.partner)!, domainIds.get(s.domain)!).lastInsertRowid;
       s.courses.forEach((slug, i) => insertSpecCourse.run(specId, courseIds.get(slug)!, i + 1));
     }
-    db.exec("COMMIT");
+    db.exec("RELEASE seed");
   } catch (err) {
-    db.exec("ROLLBACK");
+    db.exec("ROLLBACK TO seed; RELEASE seed");
     throw err;
   }
 }
@@ -265,7 +265,7 @@ function seedCommunauteNumerique(db: DatabaseSync) {
   const c = cn.COURSE;
   const id = (table: string, slug: string) => (db.prepare(`SELECT id FROM ${table} WHERE slug = ?`).get(slug) as { id: number }).id;
   const instructor = db.prepare("SELECT id FROM instructors WHERE name = ?").get(c.instructor) as { id: number };
-  db.exec("BEGIN");
+  db.exec("SAVEPOINT seed");
   try {
     const courseId = db.prepare(
       `INSERT INTO courses (slug, title, subtitle, description, domain_id, partner_id, instructor_id, level, hours, hue, outcomes, skills, status, created_at)
@@ -284,9 +284,9 @@ function seedCommunauteNumerique(db: DatabaseSync) {
     db.prepare("INSERT INTO exams (course_id, title, duration_minutes, penalty_minutes, max_switches, questions) VALUES (?, ?, ?, ?, ?, ?)")
       .run(courseId, e.title, e.durationMinutes, e.penaltyMinutes, e.maxSwitches, JSON.stringify(e.questions));
     db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('communaute-numerique', ?)").run(String(cn.CONTENT_VERSION));
-    db.exec("COMMIT");
+    db.exec("RELEASE seed");
   } catch (err) {
-    db.exec("ROLLBACK");
+    db.exec("ROLLBACK TO seed; RELEASE seed");
     throw err;
   }
 }
@@ -299,7 +299,7 @@ function syncCommunauteNumerique(db: DatabaseSync) {
   if (Number(stored?.value ?? 1) >= cn.CONTENT_VERSION) return;
   const course = db.prepare("SELECT id FROM courses WHERE slug = ?").get(cn.COURSE.slug) as { id: number } | undefined;
   if (!course) return;
-  db.exec("BEGIN");
+  db.exec("SAVEPOINT seed");
   try {
     const c = cn.COURSE;
     db.prepare("UPDATE courses SET subtitle = ?, description = ?, level = ?, outcomes = ?, skills = ? WHERE id = ?")
@@ -326,9 +326,9 @@ function syncCommunauteNumerique(db: DatabaseSync) {
     });
     db.prepare("UPDATE exams SET questions = ? WHERE course_id = ?").run(JSON.stringify(cn.EXAM.questions), course.id);
     db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('communaute-numerique', ?)").run(String(cn.CONTENT_VERSION));
-    db.exec("COMMIT");
+    db.exec("RELEASE seed");
   } catch (err) {
-    db.exec("ROLLBACK");
+    db.exec("ROLLBACK TO seed; RELEASE seed");
     throw err;
   }
 }
@@ -336,30 +336,45 @@ function syncCommunauteNumerique(db: DatabaseSync) {
 function open() {
   mkdirSync(path.dirname(DB_PATH), { recursive: true });
   const db = new DatabaseSync(DB_PATH);
-  db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
-  db.exec(SCHEMA);
-  migrate(db);
-  seedDatabase(db);
-  seedCommunauteNumerique(db);
-  syncCommunauteNumerique(db);
+  // Plusieurs processus peuvent ouvrir la base en même temps (build, serveur) : on attend le verrou au lieu d'échouer.
+  db.exec("PRAGMA busy_timeout = 15000");
+  db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA foreign_keys = ON");
+  // Schéma, migrations et remplissage dans une seule transaction exclusive : un seul processus initialise la base.
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.exec(SCHEMA);
+    migrate(db);
+    seedDatabase(db);
+    seedCommunauteNumerique(db);
+    syncCommunauteNumerique(db);
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    db.close();
+    throw err;
+  }
   return db;
 }
 
 const globalForDb = globalThis as unknown as { dicampusDb?: DatabaseSync };
 
-export const db = globalForDb.dicampusDb ?? open();
-if (process.env.NODE_ENV !== "production") globalForDb.dicampusDb = db;
+/** La base est ouverte à la première requête, pas au chargement du code (le build charge chaque page sans l'exécuter). */
+function getDb() {
+  globalForDb.dicampusDb ??= open();
+  return globalForDb.dicampusDb;
+}
 
 // node:sqlite renvoie des objets sans prototype, que React refuse de transmettre aux composants client.
 export function one<T>(sql: string, ...params: (string | number | null)[]): T | undefined {
-  const row = db.prepare(sql).get(...params);
+  const row = getDb().prepare(sql).get(...params);
   return row ? ({ ...row } as T) : undefined;
 }
 
 export function all<T>(sql: string, ...params: (string | number | null)[]): T[] {
-  return db.prepare(sql).all(...params).map((row) => ({ ...row }) as T);
+  return getDb().prepare(sql).all(...params).map((row) => ({ ...row }) as T);
 }
 
 export function run(sql: string, ...params: (string | number | null)[]) {
-  return db.prepare(sql).run(...params);
+  return getDb().prepare(sql).run(...params);
 }
