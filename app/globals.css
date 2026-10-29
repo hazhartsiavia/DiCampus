@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-grotesk), system-ui, sans-serif;
+
+  /* Violet principal, noir d'encre et couleurs d'accent pastel. */
+  --color-brand-50: #f0ebff;
+  --color-brand-100: #e2d8ff;
+  --color-brand-200: #c9b8ff;
+  --color-brand-500: #9b78fd;
+  --color-brand-600: #7a4dfc;
+  --color-brand-700: #6a3ef0;
+  --color-brand-800: #5530c9;
+  --color-brand-900: #2e1a73;
+  --color-brand: #7a4dfc;
+  --color-brand-deep: #03010d;
+  --color-brand-light: #a58bff;
+  --color-teal: #13a982;
+  --color-salmon: #ff9f87;
+  --color-salmon-50: #ffefeb;
+  --color-mint: #7ceed0;
+  --color-mint-50: #e8fcf7;
+  --color-sun-50: #fffbeb;
+  --color-surface: #f7f7f7;
+  --color-ink: #03010d;
+  --color-ink-soft: #5d5a68;
+  --color-ghost: #d9d8de;
+  --color-hairline: #e6e6e7;
+  --color-accent: #7ceed0;
+
+  --radius-card: 1rem;
+  --radius-card-lg: 1.25rem;
+  --radius-pill: 62.5rem;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+html.scroll-locked {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+}
+
+body {
+  @apply min-h-screen bg-white text-ink antialiased;
+  font-weight: 500;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@utility container-page {
+  @apply mx-auto w-full max-w-[80rem] px-4 sm:px-8;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-pill px-6 py-3.5 text-base font-bold leading-6 transition-colors duration-300 disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-ink text-white hover:bg-brand;
+}
+@utility btn-outline {
+  @apply btn border border-brand text-brand hover:bg-brand hover:text-white;
+}
+@utility btn-light {
+  @apply btn bg-white text-ink hover:bg-ink hover:text-white;
+}
+@utility btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-pill px-5 py-2.5 text-sm font-semibold transition-colors duration-300 hover:bg-surface;
+}
+
+@utility field {
+  @apply w-full rounded-xl border border-hairline bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-light focus:ring-2 focus:ring-brand-light/30;
+}
+
+@utility chip {
+  @apply inline-flex items-center gap-1.5 rounded-pill border border-hairline bg-white px-3 py-1 text-sm font-medium text-ink;
+}
+
+@utility eyebrow {
+  @apply flex w-fit items-center gap-2 rounded-pill bg-brand-50 px-3.5 py-1 text-sm font-semibold text-brand;
+}
+@utility eyebrow-light {
+  @apply eyebrow bg-white/15 text-white;
+}
+
+@utility glass {
+  @apply rounded-card border border-white/40 bg-white/80 shadow-[0_1.25rem_3rem_-1rem_rgb(40_17_57_/_0.15)] backdrop-blur-md;
+}
+
+@utility display {
+  @apply font-bold leading-[1.12] tracking-tight;
+}
+
+/* ---------- Révélations ----------
+   .clip : masque ; son enfant glisse de 115 % vers 0 quand un parent reçoit .is-in. */
+.clip {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: 0.14em;
+  /* Laisse la place aux accents des majuscules (Ê, À, É) au-dessus de la ligne. */
+  padding-top: 0.18em;
+  margin-top: -0.18em;
+}
+.clip > span {
+  display: inline-block;
+  transform: translateY(115%);
+  opacity: 0;
+  transition:
+    transform var(--d, 950ms) var(--ease-out-expo) var(--delay, 0ms),
+    opacity var(--d, 950ms) var(--ease-out-expo) var(--delay, 0ms);
+  will-change: transform;
+}
+.is-in .clip > span {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.fade-word {
+  display: inline-block;
+  transform: translateY(18px);
+  opacity: 0;
+  transition:
+    transform 700ms var(--ease-out-quart) var(--delay, 0ms),
+    opacity 700ms var(--ease-out-quart) var(--delay, 0ms);
+}
+.is-in .fade-word {
+  transform: none;
+  opacity: 1;
+}
+
+/* Survols : désactivés sur mobile et écrans tactiles. */
+@media (hover: hover) and (min-width: 769px) {
+  .hover-nudge .nudge {
+    transition: transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms;
+  }
+  .hover-nudge:hover .nudge {
+    transform: translateX(0.3rem);
+  }
+  .hover-lift {
+    transition: transform 500ms cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 400ms;
+  }
+  .hover-lift:hover {
+    transform: translateY(-0.375rem);
+    box-shadow: 0 1.25rem 2.5rem -1.25rem rgb(40 17 57 / 0.18);
+  }
+  .hover-zoom img,
+  .hover-zoom .zoom {
+    transition: transform 700ms var(--ease-out-expo);
+  }
+  .hover-zoom:hover img,
+  .hover-zoom:hover .zoom {
+    transform: scale(1.03);
+  }
+  .hover-spin svg {
+    transition: transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .hover-spin:hover svg {
+    transform: rotate(90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clip > span,
+  .fade-word {
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+}
