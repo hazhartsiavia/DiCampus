@@ -10,7 +10,7 @@ import {
   courseIdOfItem, courseIdOfModule, getEditableCourse, getTeacherRequest, instructorIdFor,
   nextPosition, slugify, swapPosition, videoEmbed,
 } from "@/lib/teaching";
-import { gradeSubmission } from "@/lib/tp";
+import { gradeSubmission, lockAllSubmissions, setSubmissionLocked } from "@/lib/tp";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -275,9 +275,24 @@ export async function gradeTp(courseId: number, submissionId: number, _: FormSta
   const raw = text(formData, "grade").replace(",", ".");
   const grade = Number(raw);
   if (raw === "" || !(grade >= 0 && grade <= 20)) return { error: "Note entre 0 et 20." };
-  gradeSubmission(submissionId, Math.round(grade * 100) / 100, text(formData, "feedback"));
+  if (!gradeSubmission(submissionId, Math.round(grade * 100) / 100, text(formData, "feedback"))) return { error: "Note verrouillée : déverrouillez-la pour la modifier." };
   revalidatePath(`/enseignant/cours/${courseId}/tp`);
   return {};
+}
+
+export async function lockTpGrade(courseId: number, submissionId: number, locked: boolean) {
+  const user = await requireTeacher();
+  assertCourse(user, courseId);
+  const submission = one("SELECT 1 FROM submissions s JOIN items i ON i.id = s.item_id JOIN modules m ON m.id = i.module_id WHERE s.id = ? AND m.course_id = ?", submissionId, courseId);
+  if (submission) setSubmissionLocked(submissionId, locked);
+  revalidatePath("/", "layout");
+}
+
+export async function lockAllTpGrades(courseId: number, itemId: number) {
+  const user = await requireTeacher();
+  assertCourse(user, courseId);
+  if (courseIdOfItem(itemId) === courseId) lockAllSubmissions(itemId);
+  revalidatePath("/", "layout");
 }
 
 // ---------- Examens ----------

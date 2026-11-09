@@ -5,7 +5,7 @@ import type { FormState } from "@/app/actions";
 
 type Action = (state: FormState, formData: FormData) => Promise<FormState>;
 
-type SubmissionView = { text: string; link: string | null; submitted_at: string; grade: number | null; feedback: string | null } | null;
+type SubmissionView = { text: string; link: string | null; submitted_at: string; grade: number | null; feedback: string | null; inReview: boolean } | null;
 
 function formatDate(iso: string) {
   // SQLite renvoie l'heure UTC sans fuseau.
@@ -34,6 +34,22 @@ export function TpSubmission({ itemId, action, submission }: { itemId: number; a
       localStorage.setItem(storageKey, text);
     } catch {}
   }, [storageKey, text, submission]);
+
+  if (submission?.inReview) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-card bg-brand-50 p-6">
+          <p className="font-bold text-brand-800">TP en cours de correction</p>
+          <p className="mt-1 text-sm text-ink-soft">Votre enseignant est en train de corriger ce TP. La note apparaîtra ici dès qu&apos;elle sera validée.</p>
+        </div>
+        <details className="rounded-card border border-hairline p-5">
+          <summary className="cursor-pointer font-medium">Mon rendu · {formatDate(submission.submitted_at)}</summary>
+          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed">{submission.text}</p>
+          {submission.link && <a href={submission.link} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm text-brand underline">{submission.link}</a>}
+        </details>
+      </div>
+    );
+  }
 
   if (graded) {
     return (
@@ -99,10 +115,13 @@ export function TpSubmission({ itemId, action, submission }: { itemId: number; a
 }
 
 /** Correction d'un rendu côté enseignant. */
-export function GradeForm({ action, grade, feedback }: { action: Action; grade: number | null; feedback: string | null }) {
+export function GradeForm({ action, grade, feedback, locked }: { action: Action; grade: number | null; feedback: string | null; locked: boolean }) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const [g, setG] = useState(grade === null ? "" : String(grade));
   const [f, setF] = useState(feedback ?? "");
+  if (locked) {
+    return feedback ? <p className="whitespace-pre-line rounded-xl bg-surface p-4 text-sm"><span className="mb-1 block text-xs font-medium text-ink-soft">Commentaire</span>{feedback}</p> : null;
+  }
   return (
     <form action={formAction} className="grid gap-3 sm:grid-cols-[8rem_1fr_auto] sm:items-start">
       <label className="block">

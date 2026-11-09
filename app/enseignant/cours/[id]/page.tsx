@@ -49,6 +49,7 @@ export default async function EditCoursePage({ params, searchParams }: Props) {
   const published = course.status === "published";
   const tps = listTpItems(course.id);
   const toGrade = tps.reduce((n, t) => n + t.to_grade, 0);
+  const toLock = tps.reduce((n, t) => n + t.to_lock, 0);
 
   return (
     <div className="container-page py-12">
@@ -68,6 +69,7 @@ export default async function EditCoursePage({ params, searchParams }: Props) {
           {tps.length > 0 && (
             <Link href={`/enseignant/cours/${course.id}/tp`} className="btn-outline">
               Travaux pratiques{toGrade > 0 && <span className="ml-2 rounded-pill bg-accent px-2 py-0.5 text-xs text-ink">{toGrade} à corriger</span>}
+              {toLock > 0 && <span className="ml-2 rounded-pill bg-amber-100 px-2 py-0.5 text-xs text-amber-900">{toLock} à valider</span>}
             </Link>
           )}
           {exam && <Link href={`/enseignant/cours/${course.id}/examen`} className="btn-outline">Notes de l&apos;examen</Link>}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { gradeTp } from "../../../actions";
+import { gradeTp, lockAllTpGrades, lockTpGrade } from "../../../actions";
 import { GradeForm } from "@/components/tp";
 import { profileLine } from "@/components/ui";
 import { requireTeacher } from "@/lib/auth";
@@ -29,12 +29,17 @@ export default async function TpGradingPage({ params, searchParams }: Props) {
   const submissions = current ? listSubmissions(current.id) : [];
   const graded = submissions.filter((s) => s.grade !== null);
   const avg = graded.length ? graded.reduce((n, s) => n + s.grade!, 0) / graded.length : null;
+  const toLock = graded.filter((s) => !s.locked_at).length;
 
   return (
     <div className="container-page py-12">
       <Link href={`/enseignant/cours/${course.id}`} className="text-sm text-ink-soft hover:underline">← {course.title}</Link>
       <p className="eyebrow mt-6">Correction</p>
       <h1 className="mt-4 text-5xl font-bold leading-[1.1] tracking-tight sm:text-6xl">Travaux pratiques</h1>
+      <p className="mt-4 max-w-2xl text-ink-soft">
+        Une note reste <strong className="text-ink">provisoire</strong> et invisible pour l&apos;étudiant tant que vous ne l&apos;avez pas verrouillée 🔒.
+        La note verrouillée est la note finale ; vous pouvez la déverrouiller pour la corriger.
+      </p>
 
       {tps.length === 0 ? (
         <p className="mt-10 rounded-card bg-surface p-6 text-ink-soft">
@@ -54,6 +59,7 @@ export default async function TpGradingPage({ params, searchParams }: Props) {
                 <p className={`mt-2 text-xs ${t.id === current?.id ? "text-white/75" : "text-ink-soft"}`}>
                   {t.total} rendu{t.total > 1 ? "s" : ""}
                   {t.to_grade > 0 && <span className="ml-2 rounded-pill bg-accent px-2 py-0.5 font-medium text-ink">{t.to_grade} à corriger</span>}
+                  {t.to_lock > 0 && <span className="ml-2 rounded-pill bg-amber-100 px-2 py-0.5 font-medium text-amber-900">{t.to_lock} à valider</span>}
                 </p>
               </Link>
             ))}
@@ -67,6 +73,12 @@ export default async function TpGradingPage({ params, searchParams }: Props) {
                 {avg !== null && <> · moyenne {avg.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}/20</>}
               </p>
             </div>
+            {toLock > 0 && (
+              <form action={lockAllTpGrades.bind(null, course.id, current!.id)} className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-card bg-amber-50 p-4">
+                <p className="text-sm text-amber-900">{toLock} note{toLock > 1 ? "s" : ""} provisoire{toLock > 1 ? "s" : ""}, pas encore visible{toLock > 1 ? "s" : ""} des étudiants.</p>
+                <button className="btn-primary px-5 py-2.5">🔒 Verrouiller toutes les notes</button>
+              </form>
+            )}
             {submissions.length === 0 ? (
               <p className="mt-6 rounded-card bg-surface p-6 text-ink-soft">Aucun rendu pour ce TP.</p>
             ) : (
@@ -79,16 +91,25 @@ export default async function TpGradingPage({ params, searchParams }: Props) {
                         <p className="text-xs text-ink-soft">{s.user_email} · rendu le {formatDate(s.submitted_at)}</p>
                         {profileLine(s) && <p className="text-xs text-ink-soft">{profileLine(s)}</p>}
                       </div>
-                      <span className={`rounded-pill px-3 py-1 text-xs font-medium ${s.grade === null ? "bg-amber-100 text-amber-900" : "bg-brand-50 text-brand-800"}`}>
-                        {s.grade === null ? "À corriger" : `${s.grade.toLocaleString("fr-FR")}/20`}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-pill px-3 py-1 text-xs font-medium ${s.grade === null ? "bg-amber-100 text-amber-900" : s.locked_at ? "bg-brand text-white" : "bg-brand-50 text-brand-800"}`}>
+                          {s.grade === null ? "À corriger" : `${s.locked_at ? "🔒 " : ""}${s.grade.toLocaleString("fr-FR")}/20${s.locked_at ? " · finale" : " · provisoire"}`}
+                        </span>
+                        {s.grade !== null && (
+                          <form action={lockTpGrade.bind(null, course.id, s.id, !s.locked_at)}>
+                            <button className={s.locked_at ? "btn-ghost px-3 py-1 text-xs" : "btn-outline px-3 py-1 text-xs"}>
+                              {s.locked_at ? "Déverrouiller" : "🔒 Verrouiller"}
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </div>
                     <div className="mt-4 max-h-96 overflow-y-auto whitespace-pre-line rounded-xl bg-surface p-4 text-sm leading-relaxed">{s.text}</div>
                     {s.link && (
                       <a href={s.link} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block break-all text-sm text-brand underline">{s.link}</a>
                     )}
                     <div className="mt-4 border-t border-hairline pt-4">
-                      <GradeForm action={gradeTp.bind(null, course.id, s.id)} grade={s.grade} feedback={s.feedback} />
+                      <GradeForm key={s.locked_at ?? "open"} action={gradeTp.bind(null, course.id, s.id)} grade={s.grade} feedback={s.feedback} locked={!!s.locked_at} />
                     </div>
                   </li>
                 ))}

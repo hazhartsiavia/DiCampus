@@ -89,7 +89,7 @@ export async function submitTp(itemId: number, slug: string, _: FormState, formD
     itemId,
   );
   if (!item || item.status !== "published" || !getEnrollment(user.id, item.course_id)) return { error: "Inscrivez-vous au cours pour rendre ce TP." };
-  if (getSubmission(itemId, user.id)?.grade != null) return { error: "Ce TP a déjà été corrigé : il ne peut plus être modifié." };
+  if (getSubmission(itemId, user.id)?.grade != null) return { error: "Ce TP est en cours de correction ou corrigé : il ne peut plus être modifié." };
   const text = String(formData.get("text") ?? "").trim();
   const link = safeLink(String(formData.get("link") ?? "").trim());
   if (text.length < TP_TEXT_MIN) return { error: `Votre rendu doit contenir au moins ${TP_TEXT_MIN} caractères.` };

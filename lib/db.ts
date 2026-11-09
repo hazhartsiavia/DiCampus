@@ -153,12 +153,17 @@ const ADDED_COLUMNS: [table: string, column: string, definition: string][] = [
   ["users", "university", "TEXT"],
   ["users", "program", "TEXT"],
   ["users", "study_level", "TEXT"],
+  // Note de TP verrouillée par l'enseignant : seule une note verrouillée est finale et visible de l'élève.
+  ["submissions", "locked_at", "TEXT"],
 ];
 
 function migrate(db: DatabaseSync) {
   for (const [table, column, definition] of ADDED_COLUMNS) {
     const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
-    if (!columns.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    if (columns.some((c) => c.name === column)) continue;
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    // Les notes données avant le verrouillage étaient déjà visibles : elles restent finales.
+    if (column === "locked_at") db.exec("UPDATE submissions SET locked_at = graded_at WHERE grade IS NOT NULL");
   }
 }
 

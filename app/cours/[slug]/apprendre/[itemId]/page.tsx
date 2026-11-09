@@ -125,7 +125,13 @@ export default async function LearnPage({ params }: Props) {
               <TpSubmission
                 itemId={item.id}
                 action={preview ? undefined : submitTp.bind(null, item.id, slug)}
-                submission={submission && { text: submission.text, link: submission.link, submitted_at: submission.submitted_at, grade: submission.grade, feedback: submission.feedback }}
+                submission={submission && {
+                  text: submission.text, link: submission.link, submitted_at: submission.submitted_at,
+                  // Une note provisoire n'est jamais envoyée au navigateur de l'élève.
+                  grade: submission.locked_at ? submission.grade : null,
+                  feedback: submission.locked_at ? submission.feedback : null,
+                  inReview: submission.grade !== null && !submission.locked_at,
+                }}
               />
             </div>
           )}

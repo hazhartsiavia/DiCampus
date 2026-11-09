@@ -2,15 +2,16 @@ import "server-only";
 import { all, one, run } from "./db";
 
 // Travaux pratiques : l'élève rend un texte (et un lien facultatif), l'enseignant le note sur 20.
+// Une note reste provisoire (invisible de l'élève) tant que l'enseignant ne l'a pas verrouillée.
 
 export type Submission = {
   id: number; item_id: number; user_id: number; text: string; link: string | null; submitted_at: string;
-  grade: number | null; feedback: string | null; graded_at: string | null;
+  grade: number | null; feedback: string | null; graded_at: string | null; locked_at: string | null;
 };
 
 export type SubmissionRow = Submission & { user_name: string; user_email: string; university: string | null; program: string | null; study_level: string | null };
 
-export type TpSummary = { id: number; title: string; module_title: string; total: number; to_grade: number };
+export type TpSummary = { id: number; title: string; module_title: string; total: number; to_grade: number; to_lock: number };
 
 export const TP_TEXT_MIN = 20;
 export const TP_TEXT_MAX = 20_000;
@@ -42,7 +43,8 @@ export function listTpItems(courseId: number) {
   return all<TpSummary>(
     `SELECT i.id, i.title, m.title AS module_title,
        (SELECT COUNT(*) FROM submissions s WHERE s.item_id = i.id) AS total,
-       (SELECT COUNT(*) FROM submissions s WHERE s.item_id = i.id AND s.grade IS NULL) AS to_grade
+       (SELECT COUNT(*) FROM submissions s WHERE s.item_id = i.id AND s.grade IS NULL) AS to_grade,
+       (SELECT COUNT(*) FROM submissions s WHERE s.item_id = i.id AND s.grade IS NOT NULL AND s.locked_at IS NULL) AS to_lock
      FROM items i JOIN modules m ON m.id = i.module_id
      WHERE m.course_id = ? AND i.kind = 'tp' ORDER BY m.position, i.position`,
     courseId,
@@ -58,6 +60,17 @@ export function listSubmissions(itemId: number) {
   );
 }
 
+/** Note provisoire ; sans effet sur une note verrouillée. Renvoie false si la note est verrouillée. */
 export function gradeSubmission(submissionId: number, grade: number, feedback: string) {
-  run("UPDATE submissions SET grade = ?, feedback = ?, graded_at = datetime('now') WHERE id = ?", grade, feedback, submissionId);
+  return run("UPDATE submissions SET grade = ?, feedback = ?, graded_at = datetime('now') WHERE id = ? AND locked_at IS NULL", grade, feedback, submissionId).changes > 0;
+}
+
+export function setSubmissionLocked(submissionId: number, locked: boolean) {
+  if (locked) run("UPDATE submissions SET locked_at = datetime('now') WHERE id = ? AND grade IS NOT NULL AND locked_at IS NULL", submissionId);
+  else run("UPDATE submissions SET locked_at = NULL WHERE id = ?", submissionId);
+}
+
+/** Verrouille toutes les notes provisoires d'un TP. */
+export function lockAllSubmissions(itemId: number) {
+  run("UPDATE submissions SET locked_at = datetime('now') WHERE item_id = ? AND grade IS NOT NULL AND locked_at IS NULL", itemId);
 }

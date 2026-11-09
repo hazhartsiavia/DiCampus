@@ -58,12 +58,12 @@ Pour devenir enseignant, un utilisateur ouvre `/enseignant` et envoie une demand
 - créer un cours (brouillon invisible jusqu'à publication) ;
 - organiser modules et éléments : lecture, vidéo (lien YouTube ou fichier MP4/WebM en https), quiz, glossaire en cartes, association, questions de réflexion, travail pratique (TP) ;
 - prévisualiser le cours comme un élève, publier et dépublier ;
-- corriger les TP sur `/enseignant/cours/<id>/tp` : note sur 20 et commentaire ;
+- corriger les TP sur `/enseignant/cours/<id>/tp` : note sur 20 et commentaire, puis verrouillage 🔒 de la note finale ;
 - consulter les notes d'examen, les exporter en CSV et autoriser un élève à repasser l'examen.
 
 ### Travaux pratiques
 
-Un TP est une consigne (même mise en forme qu'une lecture) suivie d'une zone de rendu. L'élève écrit son travail (brouillon gardé dans son navigateur), ajoute s'il le souhaite un lien (Google Docs, Drive), et peut modifier son rendu jusqu'à la correction. Le TP compte comme terminé dès qu'il est rendu. L'enseignant note sur 20 avec un commentaire ; l'élève voit alors sa note sous la consigne. Pas d'envoi de fichier directement sur la plateforme : les fichiers passent par un lien.
+Un TP est une consigne (même mise en forme qu'une lecture) suivie d'une zone de rendu. L'élève écrit son travail (brouillon gardé dans son navigateur), ajoute s'il le souhaite un lien (Google Docs, Drive), et peut modifier son rendu jusqu'à la correction. Le TP compte comme terminé dès qu'il est rendu. L'enseignant note sur 20 avec un commentaire. La note reste provisoire, invisible pour l'élève (qui voit « en cours de correction »), jusqu'à ce que l'enseignant la verrouille : la note verrouillée est la note finale, affichée sous la consigne. L'enseignant peut la déverrouiller pour la corriger. Pas d'envoi de fichier directement sur la plateforme : les fichiers passent par un lien.
 
 ## Cours « Communauté numérique » et examen final
 
